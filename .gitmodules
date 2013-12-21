@@ -4,3 +4,6 @@
 [submodule "wp-content/plugins/ExtendedCPTs"]
 	path = wp-content/plugins/ExtendedCPTs
 	url = git@github.com:johnbillion/ExtendedCPTs.git
+[submodule "wp-content/plugins/ExtendedTaxos"]
+	path = wp-content/plugins/ExtendedTaxos
+	url = git@github.com:johnbillion/ExtendedTaxos.git
