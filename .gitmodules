@@ -1,3 +1,6 @@
 [submodule "wp-content/plugins/wp-less"]
 	path = wp-content/plugins/wp-less
 	url = git@github.com:johnbillion/wp-less.git
+[submodule "wp-content/plugins/ExtendedCPTs"]
+	path = wp-content/plugins/ExtendedCPTs
+	url = git@github.com:johnbillion/ExtendedCPTs.git
