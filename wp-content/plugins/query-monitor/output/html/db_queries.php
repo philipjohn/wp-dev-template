@@ -1,7 +1,7 @@
 <?php
 /*
 
-Copyright 2013 John Blackbourn
+Copyright 2014 John Blackbourn
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@ GNU General Public License for more details.
 
 class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
+	public $query_row = 0;
+
 	public function __construct( QM_Collector $collector ) {
 		parent::__construct( $collector );
 		add_filter( 'query_monitor_menus', array( $this, 'admin_menu' ), 20 );
@@ -28,71 +30,103 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
 		$data = $this->collector->get_data();
 
-		if ( empty( $data['dbs'] ) )
+		if ( empty( $data['dbs'] ) ) {
+			$this->output_empty_queries();
 			return;
+		}
 
 		if ( !empty( $data['errors'] ) ) {
-
-			echo '<div class="qm qm-queries" id="qm-query-errors">';
-			echo '<table cellspacing="0">';
-			echo '<thead>';
-			echo '<tr>';
-			echo '<th colspan="4">' . __( 'Database Errors', 'query-monitor' ) . '</th>';
-			echo '</tr>';
-			echo '<tr>';
-			echo '<th>' . __( 'Query', 'query-monitor' ) . '</th>';
-			echo '<th>' . __( 'Call Stack', 'query-monitor' ) . '</th>';
-			echo '<th>' . __( 'Component', 'query-monitor' ) . '</th>';
-			echo '<th>' . __( 'Error', 'query-monitor' ) . '</th>';
-			echo '</tr>';
-			echo '</thead>';
-			echo '<tbody>';
-
-			foreach ( $data['errors'] as $row )
-				$this->output_query_row( $row, array( 'sql', 'stack', 'component', 'result' ) );
-
-			echo '</tbody>';
-			echo '</table>';
-			echo '</div>';
-
+			$this->output_error_queries( $data['errors'] );
 		}
 
 		if ( !empty( $data['expensive'] ) ) {
-
-			$dp = strlen( substr( strrchr( QM_DB_EXPENSIVE, '.' ), 1 ) );
-
-			echo '<div class="qm qm-queries" id="qm-query-expensive">';
-			echo '<table cellspacing="0">';
-			echo '<thead>';
-			echo '<tr>';
-			echo '<th colspan="5" class="qm-expensive">' . sprintf( __( 'Slow Database Queries (above %ss)', 'query-monitor' ), '<span class="qm-expensive">' . number_format_i18n( QM_DB_EXPENSIVE, $dp ) . '</span>' ) . '</th>';
-			echo '</tr>';
-			echo '<tr>';
-			echo '<th scope="col">' . __( 'Query', 'query-monitor' ) . '</th>';
-			echo '<th scope="col">' . __( 'Caller', 'query-monitor' ) . '</th>';
-
-			if ( isset( $data['expensive'][0]['component'] ) )
-				echo '<th scope="col">' . __( 'Component', 'query-monitor' ) . '</th>';
-
-			if ( isset( $data['expensive'][0]['result'] ) )
-				echo '<th scope="col">' . __( 'Affected Rows', 'query-monitor' ) . '</th>';
-
-			echo '<th>' . __( 'Time', 'query-monitor' ) . '</th>';
-			echo '</tr>';
-			echo '</thead>';
-			echo '<tbody>';
-
-			foreach ( $data['expensive'] as $row )
-				$this->output_query_row( $row, array( 'sql', 'caller', 'component', 'result', 'time' ) );
-
-			echo '</tbody>';
-			echo '</table>';
-			echo '</div>';
-
+			$this->output_expensive_queries( $data['expensive'] );
 		}
 
-		foreach ( $data['dbs'] as $name => $db )
+		foreach ( $data['dbs'] as $name => $db ) {
 			$this->output_queries( $name, $db, $data );
+		}
+
+	}
+
+	protected function output_empty_queries() {
+
+		echo '<div class="qm qm-queries" id="' . $this->collector->id() . '-wpdb">';
+		echo '<table cellspacing="0">';
+		echo '<thead>';
+		echo '<tr>';
+		echo '<th>' . __( 'Database Queries', 'query-monitor' ) . '</th>';
+		echo '</tr>';
+		echo '</thead>';
+		echo '<tbody>';
+		echo '<tr>';
+		echo '<td class="qm-warn">';
+		_e( 'No database queries were logged because <code>SAVEQUERIES</code> is set to <code>false</code>', 'query-monitor' );
+		echo '</td>';
+		echo '</tr>';
+		echo '</tbody>';
+		echo '</table>';
+		echo '</div>';
+
+	}
+
+	protected function output_error_queries( array $errors ) {
+
+		echo '<div class="qm qm-queries" id="qm-query-errors">';
+		echo '<table cellspacing="0">';
+		echo '<thead>';
+		echo '<tr>';
+		echo '<th colspan="4">' . __( 'Database Errors', 'query-monitor' ) . '</th>';
+		echo '</tr>';
+		echo '<tr>';
+		echo '<th>' . __( 'Query', 'query-monitor' ) . '</th>';
+		echo '<th>' . __( 'Call Stack', 'query-monitor' ) . '</th>';
+		echo '<th>' . __( 'Component', 'query-monitor' ) . '</th>';
+		echo '<th>' . __( 'Error', 'query-monitor' ) . '</th>';
+		echo '</tr>';
+		echo '</thead>';
+		echo '<tbody>';
+
+		foreach ( $errors as $row )
+			$this->output_query_row( $row, array( 'sql', 'stack', 'component', 'result' ) );
+
+		echo '</tbody>';
+		echo '</table>';
+		echo '</div>';
+
+	}
+
+	protected function output_expensive_queries( array $expensive ) {
+
+		$dp = strlen( substr( strrchr( QM_DB_EXPENSIVE, '.' ), 1 ) );
+
+		echo '<div class="qm qm-queries" id="qm-query-expensive">';
+		echo '<table cellspacing="0">';
+		echo '<thead>';
+		echo '<tr>';
+		echo '<th colspan="5" class="qm-expensive">' . sprintf( __( 'Slow Database Queries (above %ss)', 'query-monitor' ), '<span class="qm-expensive">' . number_format_i18n( QM_DB_EXPENSIVE, $dp ) . '</span>' ) . '</th>';
+		echo '</tr>';
+		echo '<tr>';
+		echo '<th scope="col">' . __( 'Query', 'query-monitor' ) . '</th>';
+		echo '<th scope="col">' . __( 'Caller', 'query-monitor' ) . '</th>';
+
+		if ( isset( $expensive[0]['component'] ) )
+			echo '<th scope="col">' . __( 'Component', 'query-monitor' ) . '</th>';
+
+		if ( isset( $expensive[0]['result'] ) )
+			echo '<th scope="col">' . __( 'Affected Rows', 'query-monitor' ) . '</th>';
+
+		echo '<th class="qm-num">' . __( 'Time', 'query-monitor' ) . '</th>';
+		echo '</tr>';
+		echo '</thead>';
+		echo '<tbody>';
+
+		foreach ( $expensive as $row )
+			$this->output_query_row( $row, array( 'sql', 'caller', 'component', 'result', 'time' ) );
+
+		echo '</tbody>';
+		echo '</table>';
+		echo '</div>';
 
 	}
 
@@ -100,7 +134,7 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
 		$max_exceeded = $db->total_qs > QM_DB_LIMIT;
 
-		$span = 3;
+		$span = 4;
 
 		if ( $db->has_results )
 			$span++;
@@ -108,7 +142,7 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 			$span++;
 
 		echo '<div class="qm qm-queries" id="' . $this->collector->id() . '-' . sanitize_title( $name ) . '">';
-		echo '<table cellspacing="0">';
+		echo '<table cellspacing="0" class="qm-sortable">';
 		echo '<thead>';
 		echo '<tr>';
 		echo '<th colspan="' . $span . '">' . sprintf( __( '%s Queries', 'query-monitor' ), $name ) . '</th>';
@@ -116,7 +150,7 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
 		if ( ! $db->has_component ) {
 			echo '<tr>';
-			echo '<td colspan="' . $span . '" class="qm-warn">' . sprintf( __( 'Extended query information such as the component and affected rows is not available. Query Monitor was unable to symlink its db.php file into place. <a href="%s" target="_blank">See this wiki page for more information.</a>', 'query-monitor' ),
+			echo '<td colspan="' . $span . '" class="qm-warn">' . sprintf( __( 'Extended query information such as the component and affected rows is not available. Query Monitor was unable to symlink its <code>db.php</code> file into place. <a href="%s" target="_blank">See this wiki page for more information.</a>', 'query-monitor' ),
 				'https://github.com/johnbillion/query-monitor/wiki/db.php-Symlink'
 			) . '</td>';
 			echo '</tr>';
@@ -133,6 +167,7 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 		}
 
 		echo '<tr>';
+		echo '<th scope="col" class="qm-sorted-asc">&nbsp;' . $this->build_sorter() . '</th>';
 		echo '<th scope="col">' . __( 'Query', 'query-monitor' ) . $this->build_filter( 'type', array_keys( $db->types ) ) . '</th>';
 		echo '<th scope="col">' . __( 'Caller', 'query-monitor' ) . $this->build_filter( 'caller', array_keys( $data['times'] ) ) . '</th>';
 
@@ -140,9 +175,9 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 			echo '<th scope="col">' . __( 'Component', 'query-monitor' ) . $this->build_filter( 'component', array_keys( $data['component_times'] ) ) . '</th>';
 
 		if ( $db->has_results )
-			echo '<th scope="col">' . __( 'Affected Rows', 'query-monitor' ) . '</th>';
+			echo '<th scope="col">' . __( 'Rows', 'query-monitor' ) . $this->build_sorter() . '</th>';
 
-		echo '<th scope="col">' . __( 'Time', 'query-monitor' ) . '</th>';
+		echo '<th scope="col" class="qm-num">' . __( 'Time', 'query-monitor' ) . $this->build_sorter() . '</th>';
 		echo '</tr>';
 		echo '</thead>';
 
@@ -150,14 +185,13 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
 			echo '<tbody>';
 
-			foreach ( $db->rows as $i => $row )
+			foreach ( $db->rows as $row )
 				$this->output_query_row( $row, array( 'sql', 'caller', 'component', 'result', 'time' ) );
 
 			echo '</tbody>';
 			echo '<tfoot>';
 
 			$total_stime = number_format_i18n( $db->total_time, 4 );
-			$total_ltime = number_format_i18n( $db->total_time, 10 );
 
 			echo '<tr class="qm-items-shown qm-hide">';
 			echo '<td valign="top" colspan="' . ( $span - 1 ) . '">' . sprintf( __( 'Queries in filter: %s', 'query-monitor' ), '<span class="qm-items-number">' . number_format_i18n( $db->total_qs ) . '</span>' ) . '</td>';
@@ -166,7 +200,7 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
 			echo '<tr>';
 			echo '<td valign="top" colspan="' . ( $span - 1 ) . '">' . sprintf( __( 'Total Queries: %s', 'query-monitor' ), number_format_i18n( $db->total_qs ) ) . '</td>';
-			echo "<td valign='top' title='{$total_ltime}'>{$total_stime}</td>";
+			echo "<td valign='top'>{$total_stime}</td>";
 			echo '</tr>';
 			echo '</tfoot>';
 
@@ -189,19 +223,18 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
 		$cols = array_flip( $cols );
 
-		if ( is_null( $row['component'] ) )
+		if ( !isset( $row['component'] ) )
 			unset( $cols['component'] );
-		if ( is_null( $row['result'] ) )
+		if ( !isset( $row['result'] ) )
 			unset( $cols['result'] );
-		if ( is_null( $row['stack'] ) )
+		if ( !isset( $row['stack'] ) )
 			unset( $cols['stack'] );
 
 		$row_attr = array();
 		$stime = number_format_i18n( $row['ltime'], 4 );
-		$ltime = number_format_i18n( $row['ltime'], 10 );
 		$td = $this->collector->is_expensive( $row ) ? ' qm-expensive' : '';
 
-		$sql = QM_Util::format_sql( $row['sql'] );
+		$sql = self::format_sql( $row['sql'] );
 
 		if ( 'SELECT' != $row['type'] )
 			$sql = "<span class='qm-nonselectsql'>{$sql}</span>";
@@ -225,7 +258,6 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 			$row_attr['data-qm-time'] = $row['ltime'];
 		}
 
-		$stack = esc_attr( $row['stack'] );
 		$attr = '';
 
 		foreach ( $row_attr as $a => $v )
@@ -233,21 +265,32 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 
 		echo "<tr{$attr}>";
 
+		echo "<td valign='top' class='qm-'>" . ++$this->query_row . "</td>";
+
 		if ( isset( $cols['sql'] ) )
 			echo "<td valign='top' class='qm-row-sql qm-ltr qm-sql'>{$sql}</td>";
 
 		if ( isset( $cols['caller'] ) ) {
 			echo "<td valign='top' class='qm-row-caller qm-ltr qm-has-toggle'>";
-			echo $row['caller'];
+
+			$caller_name = $row['caller'];
+
+			if ( isset( $row['trace'] ) ) {
+				$caller      = $row['trace']->get_caller();
+				$caller_name = self::output_filename( $row['caller'], $caller['calling_file'], $caller['calling_line'] );
+			}
+
+			echo $caller_name;
 
 			# This isn't optimal...
+			# @TODO convert this to use our new filtered trace array when present
 			$stack = explode( ', ', $row['stack'] );
 			$stack = array_reverse( $stack );
 			array_shift( $stack );
 			$stack = implode( '<br>', $stack );
 
 			if ( !empty( $stack ) ) {
-				echo '<a href="#" class="qm-toggle">+</a>';
+				echo '<a href="#" class="qm-toggle" data-on="+" data-off="-">+</a>';
 				echo '<div class="qm-toggled">' . $stack . '</div>';
 			}
 
@@ -269,7 +312,7 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 			echo $result;
 
 		if ( isset( $cols['time'] ) )
-			echo "<td valign='top' title='{$ltime}' class='qm-row-time{$td}'>{$stime}</td>\n";
+			echo "<td valign='top' class='qm-row-time{$td}'>{$stime}</td>\n";
 
 		echo '</tr>';
 
@@ -323,7 +366,7 @@ class QM_Output_Html_DB_Queries extends QM_Output_Html {
 			) );
 		}
 
-		if ( count( $data['dbs'] ) > 1 ) {
+		if ( isset( $data['dbs'] ) and count( $data['dbs'] ) > 1 ) {
 			foreach ( $data['dbs'] as $name => $db ) {
 				$menu[] = $this->menu( array(
 					'title' => sprintf( __( 'Queries (%s)', 'query-monitor' ), esc_html( $name ) ),

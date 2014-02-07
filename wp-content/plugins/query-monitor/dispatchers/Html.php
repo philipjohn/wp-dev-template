@@ -1,7 +1,7 @@
 <?php
 /*
 
-Copyright 2013 John Blackbourn
+Copyright 2014 John Blackbourn
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,8 +29,9 @@ class QM_Dispatcher_Html extends QM_Dispatcher {
 
 	public function action_admin_bar_menu( WP_Admin_Bar $wp_admin_bar ) {
 
-		if ( !$this->qm->show_query_monitor() )
+		if ( ! $this->qm->user_can_view() ) {
 			return;
+		}
 
 		$class = implode( ' ', array( 'hide-if-js', QM_Util::wpv() ) );
 		$title = __( 'Query Monitor', 'query-monitor' );
@@ -55,10 +56,23 @@ class QM_Dispatcher_Html extends QM_Dispatcher {
 
 	public function init() {
 
-		global $wp_locale;
+		if ( ! $this->qm->user_can_view() ) {
+			return;
+		}
 
-		if ( !defined( 'DONOTCACHEPAGE' ) )
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', 1 );
+		}
+
+		add_action( 'wp_enqueue_scripts',    array( $this, 'enqueue_assets' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'login_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+
+	}
+
+	public function enqueue_assets() {
+
+		global $wp_locale;
 
 		wp_enqueue_style(
 			'query-monitor',
@@ -96,7 +110,7 @@ class QM_Dispatcher_Html extends QM_Dispatcher {
 			include $output;
 		}
 
-		if ( !function_exists( 'is_admin_bar_showing' ) or !is_admin_bar_showing() )
+		if ( !is_admin_bar_showing() )
 			$class = 'qm-show';
 		else
 			$class = '';
@@ -152,11 +166,20 @@ class QM_Dispatcher_Html extends QM_Dispatcher {
 
 	public function active() {
 
-		if ( !$this->qm->show_query_monitor() ) {
+		if ( ! $this->qm->user_can_view() ) {
 			return false;
 		}
 
-		return $this->qm->did_footer();
+		if ( ! ( did_action( 'wp_footer' ) or did_action( 'admin_footer' ) or did_action( 'login_footer' ) ) ) {
+			return false;
+		}
+
+		if ( QM_Util::is_async() ) {
+			return false;
+		}
+
+		return true;
+
 	}
 
 }

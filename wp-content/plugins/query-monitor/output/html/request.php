@@ -1,7 +1,7 @@
 <?php
 /*
 
-Copyright 2013 John Blackbourn
+Copyright 2014 John Blackbourn
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ class QM_Output_Html_Request extends QM_Output_Html {
 
 			if ( ! empty( $data['request'][$item] ) ) {
 				if ( in_array( $item, array( 'request', 'matched_query', 'query_string' ) ) ) {
-					$value = QM_Util::format_url( $data['request'][$item] );
+					$value = self::format_url( $data['request'][$item] );
 				} else {
 					$value = esc_html( $data['request'][$item] );
 				}
@@ -100,6 +100,24 @@ class QM_Output_Html_Request extends QM_Output_Html {
 			echo '<td valign="top">' . $name . '</td>';
 			echo '<td valign="top" colspan="2">' . $value . '</td>';
 			echo '</tr>';
+		}
+
+		if ( !empty( $data['queried_object'] ) ) {
+
+			$vars = get_object_vars( $data['queried_object'] );
+
+			echo '<tr>';
+			echo '<td valign="top">' . __( 'Queried Object', 'query-monitor' ) . '</td>';
+			echo '<td valign="top" colspan="2" class="qm-has-inner">';
+			echo '<div class="qm-inner-toggle">' . $data['queried_object_title'] . ' (' . get_class( $data['queried_object'] ) . ' object) (<a href="#" class="qm-toggle" data-on="' . esc_attr__( 'Show', 'query-monitor' ) . '" data-off="' . esc_attr__( 'Hide', 'query-monitor' ) . '">' . __( 'Show', 'query-monitor' ) . '</a>)</div>';
+
+			echo '<div class="qm-toggled">';
+			self::output_inner( $vars );
+			echo '</div>';
+
+			echo '</td>';
+			echo '</tr>';
+
 		}
 
 		echo '</tbody>';

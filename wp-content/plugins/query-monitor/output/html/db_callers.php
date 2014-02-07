@@ -1,7 +1,7 @@
 <?php
 /*
 
-Copyright 2013 John Blackbourn
+Copyright 2014 John Blackbourn
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,11 +30,10 @@ class QM_Output_Html_DB_Callers extends QM_Output_Html {
 			return;
 
 		$total_time  = 0;
-		$total_calls = 0;
 		$span = count( $data['types'] ) + 2;
 
 		echo '<div class="qm qm-half" id="' . $this->collector->id() . '">';
-		echo '<table cellspacing="0">';
+		echo '<table cellspacing="0" class="qm-sortable">';
 		echo '<thead>';
 		echo '<tr>';
 		echo '<th colspan="' . $span . '">' . $this->collector->name() . '</th>';
@@ -44,10 +43,10 @@ class QM_Output_Html_DB_Callers extends QM_Output_Html {
 
 		if ( !empty( $data['types'] ) ) {
 			foreach ( $data['types'] as $type_name => $type_count )
-				echo '<th>' . $type_name . '</th>';
+				echo '<th class="qm-num">' . $type_name . $this->build_sorter() . '</th>';
 		}
 
-		echo '<th>' . __( 'Time', 'query-monitor' ) . '</th>';
+		echo '<th class="qm-num qm-sorted-desc">' . __( 'Time', 'query-monitor' ) . $this->build_sorter() . '</th>';
 		echo '</tr>';
 		echo '</thead>';
 
@@ -59,9 +58,7 @@ class QM_Output_Html_DB_Callers extends QM_Output_Html {
 
 			foreach ( $data['times'] as $caller => $row ) {
 				$total_time  += $row['ltime'];
-				$total_calls += $row['calls'];
 				$stime = number_format_i18n( $row['ltime'], 4 );
-				$ltime = number_format_i18n( $row['ltime'], 10 );
 
 				echo '<tr>';
 				echo "<td valign='top' class='qm-ltr'>{$row['caller']}</td>";
@@ -73,7 +70,7 @@ class QM_Output_Html_DB_Callers extends QM_Output_Html {
 						echo "<td valign='top'>&nbsp;</td>";
 				}
 
-				echo "<td valign='top' title='{$ltime}'>{$stime}</td>";
+				echo "<td valign='top'>{$stime}</td>";
 				echo '</tr>';
 
 			}
@@ -82,7 +79,6 @@ class QM_Output_Html_DB_Callers extends QM_Output_Html {
 			echo '<tfoot>';
 
 			$total_stime = number_format_i18n( $total_time, 4 );
-			$total_ltime = number_format_i18n( $total_time, 10 );
 
 			echo '<tr>';
 			echo '<td>&nbsp;</td>';
@@ -90,7 +86,7 @@ class QM_Output_Html_DB_Callers extends QM_Output_Html {
 			foreach ( $data['types'] as $type_name => $type_count )
 				echo '<td>' . number_format_i18n( $type_count ) . '</td>';
 
-			echo "<td title='{$total_ltime}'>{$total_stime}</td>";
+			echo "<td>{$total_stime}</td>";
 			echo '</tr>';
 
 			echo '</tfoot>';
